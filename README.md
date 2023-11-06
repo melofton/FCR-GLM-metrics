@@ -84,9 +84,20 @@ This repo includes all the R scripts for the calculation of observed extra metri
 This folder includes all the figures created by the R scripts. Their numbering matches the Figure captions in the manuscript including the figures in the Supporting information.
 
 ## Notes
-Not sure why I can't log into the Docker using either Quinn's username or mine; have to use default rstudio one? Does this mean I am not running the flare/rocker container?
 
-Get the following error when try to run GLM-AED: error while loading shared libraries: libnetcdf.so.15: cannot open shared object file: No such file or directory
+MEL quick-start notes to self for running GLM-AED:
 
-Will try to ask Quinn tmrw, if not will ask Kamilla
+1.	Start Docker
+2.	Open Terminal and type in the following command:
+
+docker run --rm -ti -v /Users/MaryLofton:/home/rstudio -e PASSWORD=yourpassword -p 8787:8787 rqthomas/flare-rocker:4.3.1
+
+3.	Open an internet browser and navigate to the following: http://localhost:8787
+4.	Sign into RStudio
+  a.	Username: rstudio
+  b.	Password: yourpassword
+5.	Open the FCR-GLM-metrics project
+6.	Open the file R-scripts/run_GLM_Docker.R
+7.	Run the code
+
 
