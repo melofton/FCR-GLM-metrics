@@ -1,4 +1,4 @@
-# Title: Run GLM-AED in Docker
+# Title: Assemble Toy Surrogate Dataset
 # Author: Mary Lofton
 # Date: 06NOV23
 
