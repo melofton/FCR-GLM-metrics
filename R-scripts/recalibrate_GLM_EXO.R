@@ -24,10 +24,18 @@ GLM3r::run_glm()
 # set file location of output
 nc_file <- file.path('output/output.nc') 
 glmtools::sim_vars(file = nc_file)
-var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1.6)
+var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1) %>%
+  rename(modeled = PHY_tchla_1)
 green <- glmtools::get_var(nc_file, var_name = "PHY_green", reference="surface", z_out=1.6)
 cyano <- glmtools::get_var(nc_file, var_name = "PHY_cyano", reference="surface", z_out=1.6)
 diatom <- glmtools::get_var(nc_file, var_name = "PHY_diatom", reference="surface", z_out=1.6)
+obs <- read_csv("/home/rstudio/RProjects/FCR-GLM-metrics/observations/CleanedObsChla.csv") %>%
+  filter(Depth == 1) %>%
+  rename(observed = PHY_TCHLA) %>%
+  select(-Depth)
+
+chla <- left_join(var, obs, by = "DateTime") %>%
+  pivot_longer(cols = modeled:observed, names_to = "data_type", values_to = "chla")
 
 phytos <- left_join(green,cyano, by = "DateTime") %>%
   left_join(diatom, by = "DateTime") %>%
@@ -41,6 +49,10 @@ ggplot(data = var, aes(x = DateTime, y = PHY_tchla_1.6))+
   theme_classic()
 
 ggplot(data = phytos, aes(x = DateTime, y = biomass, group = group, color = group))+
+  geom_point()+
+  theme_classic()
+
+ggplot(data = chla, aes(x = DateTime, y = chla, group = data_type, color = data_type))+
   geom_point()+
   theme_classic()
 
