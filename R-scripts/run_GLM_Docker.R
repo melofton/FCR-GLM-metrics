@@ -21,18 +21,26 @@ GLM3r::run_glm()
 
 #### grab output using glmtools ----
 
-# set folder location of output
-sim_folder <- "./Calibrated_models/Deepm2_exm_weight2"
-
 # set file location of output
-nc_file <- file.path(sim_folder, 'output/output.nc') 
+nc_file <- file.path('output/output.nc') 
 glmtools::sim_vars(file = nc_file)
 var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1.6)
+green <- glmtools::get_var(nc_file, var_name = "PHY_green", reference="surface", z_out=1.6)
+cyano <- glmtools::get_var(nc_file, var_name = "PHY_cyano", reference="surface", z_out=1.6)
+diatom <- glmtools::get_var(nc_file, var_name = "PHY_diatom", reference="surface", z_out=1.6)
+
+phytos <- left_join(green,cyano, by = "DateTime") %>%
+  left_join(diatom, by = "DateTime") %>%
+  pivot_longer(cols = starts_with("PHY"), names_to = "group", values_to = "biomass")
 
 #### visualize output ----
 
 # plot output
 ggplot(data = var, aes(x = DateTime, y = PHY_tchla_1.6))+
+  geom_point()+
+  theme_classic()
+
+ggplot(data = phytos, aes(x = DateTime, y = biomass, group = group, color = group))+
   geom_point()+
   theme_classic()
 

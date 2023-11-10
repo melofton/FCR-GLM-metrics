@@ -17,9 +17,10 @@ library(lubridate)
 setwd("./Surrogate_dataset/Deepm2_exm_weight2") 
 
 # create lists of parameter values
-param_list <- list(set1 = c(0.5, 1.5, 2.5),
-                   set2 = c(1, 2, 3),
-                   set3 = c(1.5, 2.5, 3.5))
+phyto_groups <- c("cyano","green","diatom")
+param_names <- c("pd%R_growth", "pd%w_p")
+param_values_list <- list(R_growth = seq(0.1, 5, by = 0.4),
+                          w_p = seq(-1,1, by = 0.2))
 
 # set nml filepath
 nml_file <- file.path('./aed/aed2_phyto_pars_6NOV23_MEL.nml')
@@ -27,14 +28,27 @@ nml_file <- file.path('./aed/aed2_phyto_pars_6NOV23_MEL.nml')
 # set file location of output
 nc_file <- file.path('./output/output.nc') 
 
+# save starting version of nml in environment so you can reset after
+start_nml <- glmtools::read_nml(nml_file = nml_file)
+
 # for-loop to run GLM using different parameter values
-for(i in 1:length(param_list)){
+for(i in 1:length(phyto_groups)){
+  
+  for(j in 1:length(param_names)){
+    
+    for(k in 1:length(param_values_list[[j]])){
   
   # read in nml
   nml <- glmtools::read_nml(nml_file = nml_file)
+  
+  # get current parameter values
+  curr_param <- nml$phyto_data[[param_names[j]]]
+  
+  # replace parameter value as desired
+  curr_param[i] <- param_values_list[[j]][k]
 
   # set nml parameter values
-  new_nml <- glmtools::set_nml(nml, arg_list = list('pd%R_growth' = param_list[[i]]))
+  new_nml <- glmtools::set_nml(nml, arg_name = param_names[j], arg_val = curr_param)
   
   # create path to write permuted nml to file
   write_path <- nml_file
@@ -48,10 +62,17 @@ for(i in 1:length(param_list)){
   # pull variable of interest from model output
   var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1.6)
   
+  # pull parameters from model output
+  R_growth <- new_nml$phyto_data$`pd%R_growth`
+  w_p <- new_nml$phyto_data$`pd%w_p`
+  
   # assemble dataframe for that model run
-  temp <- data.frame(R_growth_cyano = param_list[[i]][1],
-                     R_growth_green = param_list[[i]][2],
-                     R_growth_diatom = param_list[[i]][3],
+  temp <- data.frame(R_growth_cyano = R_growth[1],
+                     R_growth_green = R_growth[2],
+                     R_growth_diatom = R_growth[3],
+                     w_p_cyano = w_p[1],
+                     w_p_green = w_p[2],
+                     w_p_diatom = w_p[3],
                      deviation = 0,
                      datetime = var$DateTime,
                      variable = "PHY_tchla_1.6",
@@ -64,8 +85,14 @@ for(i in 1:length(param_list)){
     final <- bind_rows(temp, final)
   }
 
+    }
+  }
 }
 
+# make sure you reset nml
+glmtools::write_nml(start_nml, file = nml_file)
+
+# write final dataset to file
 write.csv(final, file = "./collated_model_scenarios.csv",row.names = FALSE)
 
 # plot output

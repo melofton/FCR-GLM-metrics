@@ -132,6 +132,7 @@
    Fsed_nit = -0.05
    Fsed_amm_variable = 'SDF_Fsed_amm'
    Fsed_nit_variable = 'SDF_Fsed_nit'
+   Fsed_nit_model = 0
 /
 &aed_phosphorus
    frp_initial = 0.05
