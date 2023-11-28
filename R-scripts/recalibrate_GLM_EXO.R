@@ -24,17 +24,17 @@ GLM3r::run_glm()
 # set file location of output
 nc_file <- file.path('output/output.nc') 
 glmtools::sim_vars(file = nc_file)
-var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1) %>%
-  rename(modeled = PHY_tchla_1)
+var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1.6) %>%
+  rename(modeled = PHY_tchla_1.6)
 green <- glmtools::get_var(nc_file, var_name = "PHY_green", reference="surface", z_out=1.6)
 cyano <- glmtools::get_var(nc_file, var_name = "PHY_cyano", reference="surface", z_out=1.6)
 diatom <- glmtools::get_var(nc_file, var_name = "PHY_diatom", reference="surface", z_out=1.6)
-obs <- read_csv("/home/rstudio/RProjects/FCR-GLM-metrics/observations/CleanedObsChla.csv") %>%
-  filter(Depth == 1) %>%
+obs <- read_csv("/home/rstudio/RProjects/FCR-GLM-metrics/observations/EXOChla.csv") %>%
+  filter(Depth == 1.6) %>%
   rename(observed = PHY_TCHLA) %>%
   select(-Depth)
 
-chla <- left_join(var, obs, by = "DateTime") %>%
+chla <- inner_join(obs, var, by = "DateTime") %>%
   pivot_longer(cols = modeled:observed, names_to = "data_type", values_to = "chla")
 
 phytos <- left_join(green,cyano, by = "DateTime") %>%
@@ -57,11 +57,10 @@ ggplot(data = chla, aes(x = DateTime, y = chla, group = data_type, color = data_
   theme_classic()
 
 #### pull parameter values from nml ----
-nml_file <- file.path(sim_folder, 'aed/aed2_phyto_pars_6NOV23_MEL.nml')
+nml_file <- file.path('aed/aed2_phyto_pars_27NOV23_MEL.nml')
 nml <- glmtools::read_nml(nml_file = nml_file)
-glmtools::get_nml_value(nml, arg_name = 'pd%w_p')
-glmtools::get_nml_value(nml, arg_name = 'pd%R_growth')
-new_nml <- glmtools::set_nml(nml, arg_list = list('pd%w_p' = c(-0.12,-0.12,-0.14)))
+glmtools::get_nml_value(nml, arg_name = 'pd%Xcc')
+new_nml <- glmtools::set_nml(nml, arg_list = list('pd%Xcc' = c(60, 10, 40)))
 
 #create path to write permuted nml to file
 write_path <- nml_file
