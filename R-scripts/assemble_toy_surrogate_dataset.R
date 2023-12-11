@@ -9,18 +9,99 @@
 # Data frame format: Parameter 1, parameter 2, temp/weather deviation, datetime, 
 # variable, prediction, observation
 
-# load packages
+# load packages ----
+# install.packages("plgp")
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("maximin")
+
 library(tidyverse)
 library(lubridate)
+library(plgp)
+library(maximin)
 
-# set working directory; you can change this to be any calibration folder
+# set working directory; you can change this to be any calibration folder ----
 setwd("./Surrogate_dataset/Deepm2_exm_weight2_EXO") 
 
-# create lists of parameter values
+# create matrix of parameter values using maximin space-filling design ----
 phyto_groups <- c("cyano","green","diatom")
 param_names <- c("pd%R_growth", "pd%w_p")
 param_values_list <- list(R_growth = c(0.5, 1, 2, 3, 3.5),
                           w_p = c(-1, -0.5, 0, 0.5, 1))
+Xorig <- matrix(data = NA, nrow = 100, ncol = 6)
+for(i in 1:nrow(Xorig)){
+  Xorig[,1] <- runif(nrow(Xorig), 0.5, 3.5)
+  Xorig[,2] <- runif(nrow(Xorig), 0.5, 3.5)
+  Xorig[,3] <- runif(nrow(Xorig), 0.5, 3.5)
+  Xorig[,4] <- runif(nrow(Xorig), -1, 1)
+  Xorig[,5] <- runif(nrow(Xorig), -1, 1)
+  Xorig[,6] <- runif(nrow(Xorig), -1, 1)
+}
+
+
+library("lhs")
+n <- 100
+p <- 2
+Xorig <- randomLHS(10, p)
+## Not run: 
+## maximin.cand
+# generate the design
+n <- 10
+p <- 6
+x1 <- seq(0.5, 3.5, length.out=n)
+x2 <- seq(-1, 1, length.out=n)
+param_list <- list(x1, x1, x1, x2, x2, x2)
+Xcand <- expand.grid(param_list)
+names(Xcand) <- c("R_growth.cyano","R_growth.green","R_growth.diatom",
+                  "w_p.cyano","w_p.green","w_p.diatom")
+Tmax <- nrow(Xcand)
+Xsparse <- maximin.cand(n=n, Xcand=Xcand, Tmax=Tmax, Xorig=Xorig, 
+                        init=NULL, verb=FALSE, tempfile=NULL)
+
+# error:
+# Error in !is.null(Xorig) && class(Xorig) != "matrix" : 
+#   'length = 2' in coercion to 'logical(1)'
+
+# if I convert the Xorig to a dataframe :
+# Error in if (class(X[-row.in, ]) != "matrix") { : 
+#     the condition has length > 1
+
+maxmd <- as.numeric(format(round(max(na.omit(Xsparse$mis)), 5), nsmall=5))
+
+library("lhs")
+n <- 100
+p <- 2
+Xorig <- randomLHS(10, p)
+x1 <- seq(0, 1, length.out=n)
+Xcand <- expand.grid(replicate(p, x1, simplify=FALSE))
+names(Xcand) <- paste0("x", 1:2)
+T <- nrow(Xcand)
+Xsparse <- maximin.cand(n=n, Xcand=Xcand, Tmax=T, Xorig=Xorig, 
+                        init=NULL, verb=FALSE, tempfile=NULL)
+
+maxmd <- as.numeric(format(round(max(na.omit(Xsparse$mis)), 5), nsmall=5))
+
+
+# visualization
+par(mfrow=c(1, 2))
+X <- Xcand[Xsparse$inds,]
+plot(X$x1, X$x2, xlab=expression(x[1]), ylab=expression(x[2]), 
+     xlim=c(0, 1), ylim=c(0, 1), 
+     main=paste0("n=", n, "_p=", p, "_maximin=", maxmd))
+points(Xorig, col=2, pch=20)
+abline(h=c(0, 1), v=c(0, 1), lty=2, col=2)
+if(!is.null(Xorig))
+{
+  legend("topright", "Xorig", xpd=TRUE, horiz=TRUE, 
+         inset=c(-0.03, -0.05), pch=20, col=2, bty="n")
+}
+plot(log(na.omit(Xsparse$mis)), type="b", 
+     xlab="iteration", ylab="log(minimum distance)", 
+     main="progress on minimum distance")
+abline(v=n, lty=2)
+mtext(paste0("design size=", n), at=n, cex=0.6)
+
+## End(Not run)
 
 # set nml filepath
 nml_file <- file.path('./aed/aed2_phyto_pars_27NOV23_MEL.nml')
