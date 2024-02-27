@@ -1,3 +1,3 @@
 #!/bin/bash
 cd FCR-GLM-metrics
-/usr/local/bin/R-scripts/assemble_surrogate_dataset.R
+/usr/local/bin/r R-scripts/assemble_eco-KGML_dataset.R

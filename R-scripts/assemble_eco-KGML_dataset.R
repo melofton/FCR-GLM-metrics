@@ -10,11 +10,8 @@
 # variable, prediction, observation
 
 # load packages ----
-source("./R-scripts/install.R")
-
 library(tidyverse)
 library(lubridate)
-library(lhs)
 library(glmtools)
 library(GLM3r)
 
@@ -52,7 +49,7 @@ scale_R_growth <- function(x, na.rm = FALSE) x*3 + 0.5
 scale_w_p <- function(x, na.rm = FALSE){
   
   for(i in 1:length(x)){
-  if(x[i] == 0.5){x[i] <- 0} else if(x[i] < 0.5){x[i] <- x[i]*-2} else {x[i] <- (x[i]-0.5)*2}
+    if(x[i] == 0.5){x[i] <- 0} else if(x[i] < 0.5){x[i] <- x[i]*-2} else {x[i] <- (x[i]-0.5)*2}
   }
   
   return(x)
@@ -83,8 +80,8 @@ vars <- c("PHY_tchla","PHS_frp","NIT_amm","NIT_nit","temp","TOT_extc")
 depths <- c(0.1, 1.6, 3.8, 5, 6.2, 8, 9)
 
 # for-loop to run GLM using different parameter values
-  for(j in 1:length(unlist(param_values[,1]))){
-    
+for(j in 1:length(unlist(param_values[,1]))){
+  
   # read in nml
   nml <- glmtools::read_nml(nml_file = nml_file)
   
@@ -111,14 +108,14 @@ depths <- c(0.1, 1.6, 3.8, 5, 6.2, 8, 9)
   
   # pull variables and depths of interest
   for(k in 1:length(vars)){
-  
+    
     var <- glmtools::get_var(nc_file, var_name = vars[k], reference="surface", z_out=depths) 
     
     if(k == 1){
       var_df <- var
     } else {
       var_df <- left_join(var_df,var,by = "DateTime")
-      }
+    }
     
   }
   
@@ -149,7 +146,7 @@ depths <- c(0.1, 1.6, 3.8, 5, 6.2, 8, 9)
                Flag_Chla_ugL = 0) %>%
     select(Lake, DateTime, Site, Depth_m, DataType, ModelRunType, WaterTemp_C, SRP_ugL, DIN_ugL, LightAttenuation_Kd, Chla_ugL,
            Flag_WaterTemp_C, Flag_SRP_ugL, Flag_DIN_ugL, Flag_LightAttenuation_Kd, Flag_Chla_ugL)
-
+  
   # pull parameters from model output
   R_growth <- new_nml1$phyto_data$`pd%R_growth`
   w_p <- new_nml1$phyto_data$`pd%w_p`
@@ -157,29 +154,25 @@ depths <- c(0.1, 1.6, 3.8, 5, 6.2, 8, 9)
   # assemble dataframe for that model run
   # remember to have a unique identifier for model run that can be mapped to parameters
   temp_param <- data.frame(R_growth_cyano = R_growth[1],
-                     R_growth_green = R_growth[2],
-                     R_growth_diatom = R_growth[3],
-                     w_p_cyano = w_p[1],
-                     w_p_green = w_p[2],
-                     w_p_diatom = w_p[3],
-                     ModelRunType = j,
-                     Lake = "FCR",
-                     Site = 50)
-
+                           R_growth_green = R_growth[2],
+                           R_growth_diatom = R_growth[3],
+                           w_p_cyano = w_p[1],
+                           w_p_green = w_p[2],
+                           w_p_diatom = w_p[3],
+                           ModelRunType = j,
+                           Lake = "FCR",
+                           Site = 50)
+  
   # make sure you reset nml
   glmtools::write_nml(start_nml, file = nml_file)
   
-  # bind to other model runs
-  if(j == 1){
-    final <- temp
-    final_param <- temp_param
-  } else {
-    final <- bind_rows(final, temp)
-    final_param <- bind_rows(final_param, temp_param)
-  }
+  # write model run and corresponding parameters to file
+  model_run_file <- paste0("./output/model_scenario_eco-KGML_",j,".csv")
+  write.csv(final, file = model_run_file,row.names = FALSE)
+  param_file <- paste0("./output/param_scenario_eco-KGML_",j,".csv")
+  write.csv(final_param, file = param_file,row.names = FALSE)
+  
+}
 
-    }
 
-write.csv(final, file = "./model_scenarios_eco-KGML.csv",row.names = FALSE)
-write.csv(final_param, file = "./param_scenarios_eco-KGML.csv",row.names = FALSE)
 
