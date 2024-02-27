@@ -70,12 +70,19 @@ nml_file <- file.path('./aed/aed2_phyto_pars_27NOV23_MEL.nml')
 # set file location of output
 nc_file <- file.path('./output/output.nc') 
 
+# check variable names if needed
+simvars <- glmtools::sim_vars(file = nc_file)
+
 # save starting version of nml in environment so you can reset after
 start_nml <- glmtools::read_nml(nml_file = nml_file)
 
-# for-loop to run GLM using different parameter values
+# set variables you want to save
+vars <- c("PHY_tchla","PHS_frp","NIT_amm","NIT_nit","temp","TOT_extc")
 
-  
+# set depths you want to pull
+depths <- c(0.1, 1.6, 3.8, 5, 6.2, 8, 9)
+
+# for-loop to run GLM using different parameter values
   for(j in 1:length(unlist(param_values[,1]))){
     
   # read in nml
@@ -101,25 +108,63 @@ start_nml <- glmtools::read_nml(nml_file = nml_file)
   
   # run GLM-AED using GLM3r
   GLM3r::run_glm()
-
-  # pull variable of interest from model output
-  var <- glmtools::get_var(nc_file, var_name = "PHY_tchla", reference="surface", z_out=1.6)
   
+  # pull variables and depths of interest
+  for(k in 1:length(vars)){
+  
+    var <- glmtools::get_var(nc_file, var_name = vars[k], reference="surface", z_out=depths) 
+    
+    if(k == 1){
+      var_df <- var
+    } else {
+      var_df <- left_join(var_df,var,by = "DateTime")
+      }
+    
+  }
+  
+  # wrangle model output variables
+  temp <- var_df %>%
+    pivot_longer(-DateTime, names_to = "variable", values_to = "observation") %>%
+    separate_wider_delim(variable, delim = "_", too_few = "align_end", names = c("trash","varname","Depth_m")) %>%
+    select(-trash) %>%
+    mutate(varname = ifelse(varname == "tchla","Chla_ugL",
+                            ifelse(varname == "frp","SRP_ugL",
+                                   ifelse(varname == "nit","NO3NO2_ugL",
+                                          ifelse(varname == "amm","NH4_ugL",
+                                                 ifelse(varname == "temp","WaterTemp_C","LightAttenuation_Kd"))))),
+           Depth_m = as.numeric(Depth_m)) %>%
+    pivot_wider(names_from = varname, values_from = observation) %>%
+    mutate(NH4_ugL = NH4_ugL*18.04,
+           NO3NO2_ugL = NO3NO2_ugL*62.0049,
+           SRP_ugL = SRP_ugL*94.9714,
+           DIN_ugL = NH4_ugL + NO3NO2_ugL) %>%
+    add_column(Lake = "FCR",
+               Site = 50,
+               DataType = "modeled",
+               ModelRunType = j,
+               Flag_WaterTemp_C = 0,
+               Flag_SRP_ugL = 0,
+               Flag_DIN_ugL = 0,
+               Flag_LightAttenuation_Kd = 0,
+               Flag_Chla_ugL = 0) %>%
+    select(Lake, DateTime, Site, Depth_m, DataType, ModelRunType, WaterTemp_C, SRP_ugL, DIN_ugL, LightAttenuation_Kd, Chla_ugL,
+           Flag_WaterTemp_C, Flag_SRP_ugL, Flag_DIN_ugL, Flag_LightAttenuation_Kd, Flag_Chla_ugL)
+
   # pull parameters from model output
   R_growth <- new_nml1$phyto_data$`pd%R_growth`
   w_p <- new_nml1$phyto_data$`pd%w_p`
   
   # assemble dataframe for that model run
-  temp <- data.frame(R_growth_cyano = R_growth[1],
+  # remember to have a unique identifier for model run that can be mapped to parameters
+  temp_param <- data.frame(R_growth_cyano = R_growth[1],
                      R_growth_green = R_growth[2],
                      R_growth_diatom = R_growth[3],
                      w_p_cyano = w_p[1],
                      w_p_green = w_p[2],
                      w_p_diatom = w_p[3],
-                     deviation = 0,
-                     datetime = var$DateTime,
-                     variable = "PHY_tchla_1.6",
-                     prediction = var$PHY_tchla_1.6)
+                     ModelRunType = j,
+                     Lake = "FCR",
+                     Site = 50)
 
   # make sure you reset nml
   glmtools::write_nml(start_nml, file = nml_file)
@@ -127,8 +172,10 @@ start_nml <- glmtools::read_nml(nml_file = nml_file)
   # bind to other model runs
   if(j == 1){
     final <- temp
+    final_param <- temp_param
   } else {
     final <- bind_rows(final, temp)
+    final_param <- bind_rows(final_param, temp_param)
   }
 
     }
