@@ -168,9 +168,9 @@ for(j in 1:length(unlist(param_values[,1]))){
   
   # write model run and corresponding parameters to file
   model_run_file <- paste0("./output/model_scenario_eco-KGML_",j,".csv")
-  write.csv(final, file = model_run_file,row.names = FALSE)
+  write.csv(temp, file = model_run_file,row.names = FALSE)
   param_file <- paste0("./output/param_scenario_eco-KGML_",j,".csv")
-  write.csv(final_param, file = param_file,row.names = FALSE)
+  write.csv(temp_param, file = param_file,row.names = FALSE)
   
 }
 
