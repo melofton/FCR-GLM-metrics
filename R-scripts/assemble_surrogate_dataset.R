@@ -1,8 +1,8 @@
-# Title: Assemble Toy Surrogate Dataset
+# Title: Assemble Surrogate Dataset
 # Author: Mary Lofton
 # Date: 06NOV23
 
-# Purpose: Create a toy dataset for Bobby's students to run with for surrogate development
+# Purpose: Create a dataset for Bobby's students to run with for surrogate development
 
 # Notes:
 
@@ -10,15 +10,11 @@
 # variable, prediction, observation
 
 # load packages ----
-# install.packages("plgp")
-# install.packages("tidyverse")
-# install.packages("lubridate")
-# install.packages("maximin")
+source("./R-scripts/install.R")
 
 library(tidyverse)
 library(lubridate)
-library(plgp)
-library(maximin)
+library(lhs)
 
 # set working directory; you can change this to be any calibration folder ----
 setwd("./Surrogate_dataset/Deepm2_exm_weight2_EXO") 
@@ -28,80 +24,40 @@ phyto_groups <- c("cyano","green","diatom")
 param_names <- c("pd%R_growth", "pd%w_p")
 param_values_list <- list(R_growth = c(0.5, 1, 2, 3, 3.5),
                           w_p = c(-1, -0.5, 0, 0.5, 1))
-Xorig <- matrix(data = NA, nrow = 100, ncol = 6)
-for(i in 1:nrow(Xorig)){
-  Xorig[,1] <- runif(nrow(Xorig), 0.5, 3.5)
-  Xorig[,2] <- runif(nrow(Xorig), 0.5, 3.5)
-  Xorig[,3] <- runif(nrow(Xorig), 0.5, 3.5)
-  Xorig[,4] <- runif(nrow(Xorig), -1, 1)
-  Xorig[,5] <- runif(nrow(Xorig), -1, 1)
-  Xorig[,6] <- runif(nrow(Xorig), -1, 1)
-}
 
+# Latin hypercube function
+# n runs for m factors
+# so start with 1000 runs for 6 factors (parameters)
 
-library("lhs")
-n <- 100
-p <- 2
-Xorig <- randomLHS(10, p)
-## Not run: 
-## maximin.cand
-# generate the design
-n <- 10
-p <- 6
-x1 <- seq(0.5, 3.5, length.out=n)
-x2 <- seq(-1, 1, length.out=n)
-param_list <- list(x1, x1, x1, x2, x2, x2)
-Xcand <- expand.grid(param_list)
-names(Xcand) <- c("R_growth.cyano","R_growth.green","R_growth.diatom",
-                  "w_p.cyano","w_p.green","w_p.diatom")
-Tmax <- nrow(Xcand)
-Xsparse <- maximin.cand(n=n, Xcand=Xcand, Tmax=Tmax, Xorig=Xorig, 
-                        init=NULL, verb=FALSE, tempfile=NULL)
-
-# error:
-# Error in !is.null(Xorig) && class(Xorig) != "matrix" : 
-#   'length = 2' in coercion to 'logical(1)'
-
-# if I convert the Xorig to a dataframe :
-# Error in if (class(X[-row.in, ]) != "matrix") { : 
-#     the condition has length > 1
-
-maxmd <- as.numeric(format(round(max(na.omit(Xsparse$mis)), 5), nsmall=5))
-
-library("lhs")
-n <- 100
-p <- 2
-Xorig <- randomLHS(10, p)
-x1 <- seq(0, 1, length.out=n)
-Xcand <- expand.grid(replicate(p, x1, simplify=FALSE))
-names(Xcand) <- paste0("x", 1:2)
-T <- nrow(Xcand)
-Xsparse <- maximin.cand(n=n, Xcand=Xcand, Tmax=T, Xorig=Xorig, 
-                        init=NULL, verb=FALSE, tempfile=NULL)
-
-maxmd <- as.numeric(format(round(max(na.omit(Xsparse$mis)), 5), nsmall=5))
-
-
-# visualization
-par(mfrow=c(1, 2))
-X <- Xcand[Xsparse$inds,]
-plot(X$x1, X$x2, xlab=expression(x[1]), ylab=expression(x[2]), 
-     xlim=c(0, 1), ylim=c(0, 1), 
-     main=paste0("n=", n, "_p=", p, "_maximin=", maxmd))
-points(Xorig, col=2, pch=20)
-abline(h=c(0, 1), v=c(0, 1), lty=2, col=2)
-if(!is.null(Xorig))
+mylhs <- function(n, m)
 {
-  legend("topright", "Xorig", xpd=TRUE, horiz=TRUE, 
-         inset=c(-0.03, -0.05), pch=20, col=2, bty="n")
+  ## generate the Latin hypercube 
+  l <- (-(n - 1)/2):((n - 1)/2)
+  L <- matrix(NA, nrow=n, ncol=m)
+  for(j in 1:m) L[,j] <- sample(l, n)
+  
+  ## draw the random uniforms and turn the hypercube into a sample
+  U <- matrix(runif(n*m), ncol=m)
+  X <- (L + (n - 1)/2 + U)/n
+  colnames(X) <- paste0("x", 1:m)
+  
+  ## return the design and the grid it lives on for visualization
+  return(list(X=X, g=c((l + (n - 1)/2)/n,1)))
 }
-plot(log(na.omit(Xsparse$mis)), type="b", 
-     xlab="iteration", ylab="log(minimum distance)", 
-     main="progress on minimum distance")
-abline(v=n, lty=2)
-mtext(paste0("design size=", n), at=n, cex=0.6)
 
-## End(Not run)
+Dlist <- mylhs(n = 1000, m = 6)
+
+plot(Dlist$X[,1:2], xlim=c(0,1), ylim=c(0,1), xlab="x1", ylab="x2")
+
+# data wrangling to get parameter values in correct range
+scale_R_growth <- function(x, na.rm = FALSE) x*3
+scale_w_p <- function(x, na.rm = FALSE) if(x == 0)
+starwars %>% mutate_at(c("height", "mass"), scale2)
+
+param_values <- tibble(data.frame(Dlist$X)) %>%
+  mutate()
+colnames(param_values) <- c("R_growth_cyano","R_growth_green","R_growth_diatom","w_p_cyano","w_p_green","w_p_diatom")
+
 
 # set nml filepath
 nml_file <- file.path('./aed/aed2_phyto_pars_27NOV23_MEL.nml')
