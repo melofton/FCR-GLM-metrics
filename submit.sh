@@ -6,4 +6,4 @@
 #SBATCH --time=0-48:00:00 # 10 minutes
 
 module load containers/singularity
-singularity exec --bind=/home/freyao/FCRE-forecast-code:/home/rstudio/FCRE-forecast-code /projects/rqthomas_lab/eco4cast_containers/rocker-neon4cast_4.2.1.sif /bin/bash run_r.sh
+singularity exec --bind=/home/melofton/FCR-GLM-metrics:/home/rstudio/FCR-GLM-metrics /projects/rqthomas_lab/eco4cast_containers/rocker-neon4cast_4.2.1.sif /bin/bash run_r.sh
