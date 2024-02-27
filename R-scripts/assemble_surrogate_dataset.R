@@ -50,14 +50,31 @@ Dlist <- mylhs(n = 1000, m = 6)
 plot(Dlist$X[,1:2], xlim=c(0,1), ylim=c(0,1), xlab="x1", ylab="x2")
 
 # data wrangling to get parameter values in correct range
-scale_R_growth <- function(x, na.rm = FALSE) x*3
-scale_w_p <- function(x, na.rm = FALSE) if(x == 0)
-starwars %>% mutate_at(c("height", "mass"), scale2)
+scale_R_growth <- function(x, na.rm = FALSE) x*3 + 0.5
+scale_w_p <- function(x, na.rm = FALSE){
+  
+  for(i in 1:length(x)){
+  if(x[i] == 0.5){x[i] <- 0} else if(x[i] < 0.5){x[i] <- x[i]*-2} else {x[i] <- (x[i]-0.5)*2}
+  }
+  
+  return(x)
+  
+}
 
 param_values <- tibble(data.frame(Dlist$X)) %>%
-  mutate()
+  mutate_at(c("x1","x2","x3"), scale_R_growth) %>%
+  mutate_at(c("x4","x5","x6"), scale_w_p)
 colnames(param_values) <- c("R_growth_cyano","R_growth_green","R_growth_diatom","w_p_cyano","w_p_green","w_p_diatom")
 
+ggplot(data = param_values, aes(x = R_growth_cyano, y = w_p_cyano))+
+  geom_point()+
+  theme_bw()
+ggplot(data = param_values, aes(x = R_growth_green, y = w_p_green))+
+  geom_point()+
+  theme_bw()
+ggplot(data = param_values, aes(x = R_growth_diatom, y = w_p_diatom))+
+  geom_point()+
+  theme_bw()
 
 # set nml filepath
 nml_file <- file.path('./aed/aed2_phyto_pars_27NOV23_MEL.nml')
