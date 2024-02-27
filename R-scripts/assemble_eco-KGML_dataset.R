@@ -71,7 +71,7 @@ nml_file <- file.path('./aed/aed2_phyto_pars_27NOV23_MEL.nml')
 nc_file <- file.path('./output/output.nc') 
 
 # check variable names if needed
-simvars <- glmtools::sim_vars(file = nc_file)
+# simvars <- glmtools::sim_vars(file = nc_file)
 
 # save starting version of nml in environment so you can reset after
 start_nml <- glmtools::read_nml(nml_file = nml_file)
@@ -181,3 +181,5 @@ depths <- c(0.1, 1.6, 3.8, 5, 6.2, 8, 9)
     }
 
 write.csv(final, file = "./model_scenarios_eco-KGML.csv",row.names = FALSE)
+write.csv(final_param, file = "./param_scenarios_eco-KGML.csv",row.names = FALSE)
+
