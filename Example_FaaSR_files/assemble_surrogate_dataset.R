@@ -16,7 +16,7 @@ library(glmtools)
 library(GLM3r)
 
 # set working directory; you can change this to be any calibration folder ----
-setwd("./ExampleFaaSR_files") 
+setwd("./Example_FaaSR_files") 
 
 # create matrix of parameter values using maximin space-filling design ----
 phyto_groups <- c("cyano","green","diatom")
