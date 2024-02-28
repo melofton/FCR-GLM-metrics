@@ -53,3 +53,11 @@ for(i in 1:n_model_runs){
 
 write.csv(final, "./Eco-KGML_model_runs/eco-KGML_model_runs.csv", row.names = FALSE)
 write.csv(final_param, "./Eco-KGML_model_runs/eco-KGML_parameter_scenarios.csv", row.names = FALSE)
+
+one_six <- final %>%
+  filter(Depth_m == 1.6)
+
+# Plots
+ggplot(data = one_six, aes(x = DateTime, y = LightAttenuation_Kd, group = ModelRunType))+
+  geom_line()+
+  theme_bw()
