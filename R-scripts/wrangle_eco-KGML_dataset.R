@@ -50,3 +50,6 @@ for(i in 1:n_model_runs){
     final_param <- bind_rows(final_param, temp_param)
   }
 }
+
+write.csv(final, "./Eco-KGML_model_runs/eco-KGML_model_runs.csv", row.names = FALSE)
+write.csv(final_param, "./Eco-KGML_model_runs/eco-KGML_parameter_scenarios.csv", row.names = FALSE)
